@@ -20,7 +20,7 @@ export function Footer() {
             <div className="flex items-center gap-2 text-slate-400 text-sm">
               <span>Hecho con</span>
               <Heart size={14} className="text-red-400 fill-red-400" />
-              <span>para UPC Perú</span>
+              <span>para la educación</span>
             </div>
           </div>
         </div>

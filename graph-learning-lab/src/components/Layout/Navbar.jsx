@@ -31,7 +31,7 @@ export function Navbar() {
             </div>
             <div className="hidden sm:block">
               <h1 className="text-lg font-bold text-slate-100">Graph Learning Lab</h1>
-              <p className="text-xs text-slate-400">Redes Complejas - UPC</p>
+              <p className="text-xs text-slate-400">Profesor Royer Rojas</p>
             </div>
           </div>
 
