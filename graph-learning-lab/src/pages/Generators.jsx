@@ -581,7 +581,6 @@ export function Generators() {
           <div className="lg:sticky lg:top-20 h-fit">
             <div className="panel p-2">
               <GraphCanvas
-                width={550}
                 height={500}
                 layout="force"
               />

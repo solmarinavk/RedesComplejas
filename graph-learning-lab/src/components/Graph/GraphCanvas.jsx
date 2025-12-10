@@ -2,18 +2,12 @@ import React, { useEffect, useRef, useState, useCallback } from 'react';
 import * as d3 from 'd3';
 import { useGraph } from '../../contexts/GraphContext';
 
-// Color palette for communities
-const COMMUNITY_COLORS = [
-  '#3b82f6', '#22c55e', '#f59e0b', '#ef4444', '#8b5cf6',
-  '#ec4899', '#14b8a6', '#f97316', '#6366f1', '#84cc16'
-];
-
 export function GraphCanvas({
-  width = 800,
-  height = 600,
-  nodeColors = {},      // { nodeId: color }
-  nodeSizes = {},       // { nodeId: size }
-  edgeColors = {},      // { edgeId: color }
+  width: propWidth,
+  height: propHeight = 500,
+  nodeColors = {},
+  nodeSizes = {},
+  edgeColors = {},
   highlightedNodes = [],
   highlightedEdges = [],
   showLabels = true,
@@ -22,9 +16,10 @@ export function GraphCanvas({
   onNodeClick,
   onEdgeClick,
   onCanvasClick,
-  layout = 'force',     // 'force', 'circular', 'grid'
+  layout = 'force',
   className = ''
 }) {
+  const containerRef = useRef(null);
   const svgRef = useRef(null);
   const simulationRef = useRef(null);
   const { state, dispatch } = useGraph();
@@ -32,14 +27,49 @@ export function GraphCanvas({
 
   const [tooltip, setTooltip] = useState(null);
   const [transform, setTransform] = useState(d3.zoomIdentity);
+  const [dimensions, setDimensions] = useState({ width: propWidth || 600, height: propHeight });
+
+  // Responsive dimensions
+  useEffect(() => {
+    if (!containerRef.current) return;
+
+    const updateDimensions = () => {
+      const container = containerRef.current;
+      if (container) {
+        const rect = container.getBoundingClientRect();
+        setDimensions({
+          width: propWidth || Math.max(300, rect.width - 8),
+          height: propHeight
+        });
+      }
+    };
+
+    updateDimensions();
+    const timer = setTimeout(updateDimensions, 100);
+    window.addEventListener('resize', updateDimensions);
+    return () => {
+      window.removeEventListener('resize', updateDimensions);
+      clearTimeout(timer);
+    };
+  }, [propWidth, propHeight]);
+
+  const { width, height } = dimensions;
 
   // Handle canvas click for adding nodes
   const handleCanvasClick = useCallback((event) => {
     if (!interactive) return;
 
+    // Check if we clicked on a node or edge
+    if (event.target.tagName === 'circle' || event.target.tagName === 'line' || event.target.tagName === 'text') {
+      return;
+    }
+
     const svg = svgRef.current;
-    const point = d3.pointer(event, svg);
-    const [x, y] = transform.invert(point);
+    if (!svg) return;
+
+    const rect = svg.getBoundingClientRect();
+    const x = (event.clientX - rect.left - transform.x) / transform.k;
+    const y = (event.clientY - rect.top - transform.y) / transform.k;
 
     if (mode === 'addNode') {
       dispatch({
@@ -96,42 +126,9 @@ export function GraphCanvas({
     }
   }, [mode, dispatch, interactive, onEdgeClick]);
 
-  // Handle node drag
-  const handleDrag = useCallback((simulation) => {
-    function dragstarted(event, d) {
-      if (!interactive || mode !== 'select') return;
-      if (!event.active) simulation.alphaTarget(0.3).restart();
-      d.fx = d.x;
-      d.fy = d.y;
-    }
-
-    function dragged(event, d) {
-      if (!interactive || mode !== 'select') return;
-      d.fx = event.x;
-      d.fy = event.y;
-    }
-
-    function dragended(event, d) {
-      if (!interactive || mode !== 'select') return;
-      if (!event.active) simulation.alphaTarget(0);
-      d.fx = null;
-      d.fy = null;
-
-      dispatch({
-        type: 'UPDATE_NODE_POSITION',
-        payload: { id: d.id, x: d.x, y: d.y }
-      });
-    }
-
-    return d3.drag()
-      .on('start', dragstarted)
-      .on('drag', dragged)
-      .on('end', dragended);
-  }, [interactive, mode, dispatch]);
-
   // Main D3 rendering effect
   useEffect(() => {
-    if (!svgRef.current) return;
+    if (!svgRef.current || width === 0) return;
 
     const svg = d3.select(svgRef.current);
     svg.selectAll('*').remove();
@@ -176,14 +173,36 @@ export function GraphCanvas({
 
     svg.call(zoom);
 
-    // Create links
-    const nodeMap = new Map(nodes.map(n => [n.id, { ...n }]));
+    // Show empty state message if no nodes
+    if (nodes.length === 0) {
+      svg.append('text')
+        .attr('x', width / 2)
+        .attr('y', height / 2)
+        .attr('text-anchor', 'middle')
+        .attr('fill', '#64748b')
+        .attr('font-size', '14px')
+        .text(mode === 'addNode' ? 'Haz clic aquí para crear un nodo' : 'Selecciona "Agregar Nodo" y haz clic aquí');
+      return;
+    }
 
-    const linkData = edges.map(e => ({
-      ...e,
-      source: nodeMap.get(e.source) || { id: e.source, x: 0, y: 0 },
-      target: nodeMap.get(e.target) || { id: e.target, x: 0, y: 0 }
+    // Create node data with positions
+    const nodeData = nodes.map(n => ({
+      ...n,
+      x: n.x !== undefined ? n.x : width / 2 + (Math.random() - 0.5) * 200,
+      y: n.y !== undefined ? n.y : height / 2 + (Math.random() - 0.5) * 200
     }));
+
+    // Create node map for edge lookup
+    const nodeById = new Map(nodeData.map(n => [n.id, n]));
+
+    // Create link data
+    const linkData = edges
+      .map(e => ({
+        ...e,
+        source: nodeById.get(e.source),
+        target: nodeById.get(e.target)
+      }))
+      .filter(e => e.source && e.target);
 
     // Draw edges
     const links = g.append('g')
@@ -191,7 +210,6 @@ export function GraphCanvas({
       .selectAll('line')
       .data(linkData)
       .join('line')
-      .attr('class', d => `edge ${highlightedEdges.includes(d.id) ? 'highlighted' : ''}`)
       .attr('stroke', d => edgeColors[d.id] || (highlightedEdges.includes(d.id) ? '#22d3ee' : '#475569'))
       .attr('stroke-width', d => highlightedEdges.includes(d.id) ? 3 : 2)
       .attr('stroke-opacity', 0.8)
@@ -200,13 +218,13 @@ export function GraphCanvas({
       .on('click', (event, d) => handleEdgeClick(event, d));
 
     // Edge labels for weights
+    let edgeLabels = null;
     if (weighted && showWeights) {
-      g.append('g')
+      edgeLabels = g.append('g')
         .attr('class', 'edge-labels')
         .selectAll('text')
         .data(linkData)
         .join('text')
-        .attr('class', 'edge-label')
         .attr('font-size', 10)
         .attr('fill', '#94a3b8')
         .attr('text-anchor', 'middle')
@@ -214,8 +232,6 @@ export function GraphCanvas({
     }
 
     // Draw nodes
-    const nodeData = nodes.map(n => ({ ...n }));
-
     const nodeGroup = g.append('g')
       .attr('class', 'nodes')
       .selectAll('g')
@@ -226,7 +242,6 @@ export function GraphCanvas({
 
     // Node circles
     nodeGroup.append('circle')
-      .attr('class', d => `node ${selectedNode === d.id ? 'selected' : ''} ${highlightedNodes.includes(d.id) ? 'highlighted' : ''}`)
       .attr('r', d => nodeSizes[d.id] || 12)
       .attr('fill', d => nodeColors[d.id] || (highlightedNodes.includes(d.id) ? '#22d3ee' : '#3b82f6'))
       .attr('stroke', d => {
@@ -237,9 +252,11 @@ export function GraphCanvas({
       .attr('stroke-width', d => selectedNode === d.id || connectingFrom === d.id ? 3 : 2)
       .on('click', (event, d) => handleNodeClick(event, d))
       .on('mouseenter', (event, d) => {
+        if (!svgRef.current) return;
+        const rect = svgRef.current.getBoundingClientRect();
         setTooltip({
-          x: event.pageX,
-          y: event.pageY,
+          x: event.clientX - rect.left + 10,
+          y: event.clientY - rect.top - 10,
           content: `Nodo ${d.label || d.id}`
         });
       })
@@ -248,24 +265,23 @@ export function GraphCanvas({
     // Node labels
     if (showLabels) {
       nodeGroup.append('text')
-        .attr('class', 'node-label')
         .attr('text-anchor', 'middle')
         .attr('dy', '.35em')
         .attr('font-size', 10)
         .attr('fill', '#f1f5f9')
         .attr('pointer-events', 'none')
-        .text(d => d.label || d.id);
+        .text(d => d.label || '');
     }
 
-    // Setup force simulation if using force layout
-    if (layout === 'force') {
+    // Setup force simulation
+    if (layout === 'force' && nodeData.length > 0) {
       const simulation = d3.forceSimulation(nodeData)
         .force('link', d3.forceLink(linkData)
           .id(d => d.id)
-          .distance(100))
-        .force('charge', d3.forceManyBody().strength(-300))
+          .distance(80))
+        .force('charge', d3.forceManyBody().strength(-200))
         .force('center', d3.forceCenter(width / 2, height / 2))
-        .force('collision', d3.forceCollide().radius(30));
+        .force('collision', d3.forceCollide().radius(25));
 
       simulationRef.current = simulation;
 
@@ -278,14 +294,38 @@ export function GraphCanvas({
 
         nodeGroup.attr('transform', d => `translate(${d.x},${d.y})`);
 
-        if (weighted && showWeights) {
-          g.selectAll('.edge-label')
+        if (edgeLabels) {
+          edgeLabels
             .attr('x', d => (d.source.x + d.target.x) / 2)
             .attr('y', d => (d.source.y + d.target.y) / 2);
         }
       });
 
-      nodeGroup.call(handleDrag(simulation));
+      // Drag behavior
+      const drag = d3.drag()
+        .on('start', (event, d) => {
+          if (!interactive || mode !== 'select') return;
+          if (!event.active) simulation.alphaTarget(0.3).restart();
+          d.fx = d.x;
+          d.fy = d.y;
+        })
+        .on('drag', (event, d) => {
+          if (!interactive || mode !== 'select') return;
+          d.fx = event.x;
+          d.fy = event.y;
+        })
+        .on('end', (event, d) => {
+          if (!interactive || mode !== 'select') return;
+          if (!event.active) simulation.alphaTarget(0);
+          d.fx = null;
+          d.fy = null;
+          dispatch({
+            type: 'UPDATE_NODE_POSITION',
+            payload: { id: d.id, x: d.x, y: d.y }
+          });
+        });
+
+      nodeGroup.call(drag);
     } else if (layout === 'circular') {
       // Circular layout
       const radius = Math.min(width, height) / 3;
@@ -296,12 +336,18 @@ export function GraphCanvas({
       });
 
       links
-        .attr('x1', d => nodeMap.get(d.source.id)?.x || d.source.x)
-        .attr('y1', d => nodeMap.get(d.source.id)?.y || d.source.y)
-        .attr('x2', d => nodeMap.get(d.target.id)?.x || d.target.x)
-        .attr('y2', d => nodeMap.get(d.target.id)?.y || d.target.y);
+        .attr('x1', d => d.source.x)
+        .attr('y1', d => d.source.y)
+        .attr('x2', d => d.target.x)
+        .attr('y2', d => d.target.y);
 
       nodeGroup.attr('transform', d => `translate(${d.x},${d.y})`);
+
+      if (edgeLabels) {
+        edgeLabels
+          .attr('x', d => (d.source.x + d.target.x) / 2)
+          .attr('y', d => (d.source.y + d.target.y) / 2);
+      }
     } else {
       // Use stored positions
       links
@@ -311,10 +357,13 @@ export function GraphCanvas({
         .attr('y2', d => d.target.y);
 
       nodeGroup.attr('transform', d => `translate(${d.x},${d.y})`);
-    }
 
-    // Click handler for canvas
-    svg.on('click', handleCanvasClick);
+      if (edgeLabels) {
+        edgeLabels
+          .attr('x', d => (d.source.x + d.target.x) / 2)
+          .attr('y', d => (d.source.y + d.target.y) / 2);
+      }
+    }
 
     return () => {
       if (simulationRef.current) {
@@ -324,26 +373,27 @@ export function GraphCanvas({
   }, [
     nodes, edges, directed, weighted, selectedNode, connectingFrom, mode,
     width, height, nodeColors, nodeSizes, edgeColors, highlightedNodes, highlightedEdges,
-    showLabels, showWeights, interactive, layout, handleDrag, handleNodeClick, handleEdgeClick, handleCanvasClick
+    showLabels, showWeights, interactive, layout, handleNodeClick, handleEdgeClick, dispatch
   ]);
 
   return (
-    <div className={`relative ${className}`}>
+    <div ref={containerRef} className={`relative w-full ${className}`}>
       <svg
         ref={svgRef}
         width={width}
         height={height}
         className="graph-canvas bg-slate-900 rounded-lg border border-slate-700"
-        style={{ touchAction: 'none' }}
+        style={{ touchAction: 'none', maxWidth: '100%', display: 'block' }}
+        onClick={handleCanvasClick}
       />
 
       {/* Tooltip */}
       {tooltip && (
         <div
-          className="tooltip"
+          className="absolute z-50 px-3 py-2 text-sm bg-slate-700 text-slate-100 rounded-lg shadow-lg border border-slate-600 pointer-events-none"
           style={{
-            left: tooltip.x + 10,
-            top: tooltip.y + 10
+            left: Math.min(tooltip.x, width - 100),
+            top: Math.max(tooltip.y, 10)
           }}
         >
           {tooltip.content}

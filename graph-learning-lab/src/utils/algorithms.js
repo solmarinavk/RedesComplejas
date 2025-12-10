@@ -64,9 +64,9 @@ export function pageRank(graph, options = {}) {
 
       // Handle dangling nodes (redistribute their PR)
       let danglingSum = 0;
-      nodes.forEach(n => {
-        if (outgoing[n.id].length === 0) {
-          danglingSum += pr[n.id] / n;
+      nodes.forEach(danglingNode => {
+        if (outgoing[danglingNode.id].length === 0) {
+          danglingSum += pr[danglingNode.id] / n;
         }
       });
 

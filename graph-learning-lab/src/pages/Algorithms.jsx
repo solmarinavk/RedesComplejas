@@ -607,7 +607,6 @@ export function Algorithms() {
           <div className="lg:sticky lg:top-20 h-fit">
             <div className="panel p-2">
               <GraphCanvas
-                width={550}
                 height={500}
                 nodeColors={nodeColors}
                 nodeSizes={nodeSizes}

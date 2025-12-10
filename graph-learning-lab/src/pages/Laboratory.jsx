@@ -23,7 +23,6 @@ export function Laboratory() {
             <Minimize2 size={20} />
           </button>
           <GraphCanvas
-            width={window.innerWidth - 32}
             height={window.innerHeight - 32}
             className="h-full"
           />
@@ -67,9 +66,7 @@ export function Laboratory() {
                 <Maximize2 size={16} />
               </button>
               <GraphCanvas
-                width={700}
                 height={500}
-                className="w-full"
               />
             </div>
 
