@@ -56,8 +56,8 @@ export function Laboratory() {
           </div>
 
           {/* Center - Canvas */}
-          <div className="lg:col-span-6 order-1 lg:order-2">
-            <div className="panel p-2 relative">
+          <div className="lg:col-span-6 order-1 lg:order-2 min-w-0">
+            <div className="panel p-2 relative overflow-hidden">
               <button
                 onClick={handleFullscreen}
                 className="absolute top-4 right-4 z-10 p-2 bg-slate-700/80 hover:bg-slate-600 rounded-lg text-slate-300 transition-colors"

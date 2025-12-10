@@ -578,8 +578,8 @@ export function Generators() {
           </div>
 
           {/* Right: Graph Preview */}
-          <div className="lg:sticky lg:top-20 h-fit">
-            <div className="panel p-2">
+          <div className="lg:sticky lg:top-20 h-fit min-w-0">
+            <div className="panel p-2 overflow-hidden">
               <GraphCanvas
                 height={500}
                 layout="force"
