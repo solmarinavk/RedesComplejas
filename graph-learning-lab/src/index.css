@@ -1,0 +1,201 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Custom styles for Graph Learning Lab */
+:root {
+  --bg-primary: #0f172a;
+  --bg-secondary: #1e293b;
+  --accent: #22d3ee;
+  --text-primary: #f1f5f9;
+  --text-secondary: #94a3b8;
+}
+
+body {
+  @apply bg-slate-900 text-slate-100 antialiased;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  margin: 0;
+  min-height: 100vh;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-slate-800;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-slate-600 rounded-full;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-slate-500;
+}
+
+/* Graph canvas styles */
+.graph-canvas {
+  @apply bg-slate-900 rounded-lg border border-slate-700;
+}
+
+.node {
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.node:hover {
+  filter: brightness(1.2);
+}
+
+.node.selected {
+  stroke: #fbbf24;
+  stroke-width: 3px;
+}
+
+.edge {
+  stroke: #475569;
+  stroke-width: 2px;
+  transition: all 0.2s ease;
+}
+
+.edge:hover {
+  stroke: #64748b;
+  stroke-width: 3px;
+}
+
+.edge.highlighted {
+  stroke: #22d3ee;
+  stroke-width: 3px;
+}
+
+/* Tooltip styles */
+.tooltip {
+  @apply absolute z-50 px-3 py-2 text-sm bg-slate-700 text-slate-100 rounded-lg shadow-lg;
+  @apply border border-slate-600;
+  pointer-events: none;
+}
+
+/* Animation keyframes */
+@keyframes nodeAppear {
+  from {
+    transform: scale(0);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes edgeAppear {
+  from {
+    stroke-dashoffset: 100;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.node-appear {
+  animation: nodeAppear 0.3s ease-out forwards;
+}
+
+.edge-appear {
+  stroke-dasharray: 100;
+  animation: edgeAppear 0.5s ease-out forwards;
+}
+
+/* Panel styles */
+.panel {
+  @apply bg-slate-800 rounded-xl border border-slate-700 shadow-xl;
+}
+
+/* Slider custom styles */
+input[type="range"] {
+  @apply w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  @apply appearance-none w-4 h-4 bg-cyan-400 rounded-full cursor-pointer;
+  @apply hover:bg-cyan-300 transition-colors;
+}
+
+input[type="range"]::-moz-range-thumb {
+  @apply w-4 h-4 bg-cyan-400 rounded-full cursor-pointer border-0;
+}
+
+/* Button styles */
+.btn-primary {
+  @apply px-4 py-2 bg-cyan-500 hover:bg-cyan-400 text-slate-900 font-medium rounded-lg;
+  @apply transition-all duration-200 shadow-lg shadow-cyan-500/25;
+}
+
+.btn-secondary {
+  @apply px-4 py-2 bg-slate-700 hover:bg-slate-600 text-slate-100 font-medium rounded-lg;
+  @apply transition-all duration-200 border border-slate-600;
+}
+
+.btn-danger {
+  @apply px-4 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-400 font-medium rounded-lg;
+  @apply transition-all duration-200 border border-red-500/30;
+}
+
+/* Card styles */
+.card {
+  @apply bg-slate-800/50 backdrop-blur rounded-xl border border-slate-700/50 p-4;
+  @apply hover:border-slate-600 transition-colors duration-200;
+}
+
+/* Metric display */
+.metric-value {
+  @apply text-2xl font-bold text-cyan-400;
+}
+
+.metric-label {
+  @apply text-sm text-slate-400;
+}
+
+/* Tab navigation */
+.tab {
+  @apply px-4 py-2 text-slate-400 hover:text-slate-200 border-b-2 border-transparent;
+  @apply transition-all duration-200;
+}
+
+.tab.active {
+  @apply text-cyan-400 border-cyan-400;
+}
+
+/* Math formulas */
+.formula {
+  @apply font-mono text-cyan-300 bg-slate-700/50 px-2 py-1 rounded;
+}
+
+/* Loading spinner */
+.spinner {
+  @apply w-6 h-6 border-2 border-slate-600 border-t-cyan-400 rounded-full animate-spin;
+}
+
+/* Toast notifications */
+.toast {
+  @apply fixed bottom-4 right-4 px-4 py-3 bg-slate-800 border border-slate-700 rounded-lg shadow-xl;
+  @apply flex items-center gap-3;
+}
+
+.toast-success {
+  @apply border-l-4 border-l-green-500;
+}
+
+.toast-error {
+  @apply border-l-4 border-l-red-500;
+}
+
+.toast-info {
+  @apply border-l-4 border-l-cyan-500;
+}
